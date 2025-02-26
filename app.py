@@ -1,9 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from forms import PostForm
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'your_secret_key'  # Adicione uma chave secreta para CSRF protection
 db = SQLAlchemy(app)
 
 class Post(db.Model):
@@ -23,17 +25,19 @@ def post(post_id):
 
 @app.route('/new_post', methods=['GET', 'POST'])
 def new_post():
-    if request.method == 'POST':
+    form = PostForm()
+    if form.validate_on_submit():# verificar se os dados do formulário são válidos
         new_post = Post(
-            title=request.form['title'],
-            content=request.form['content']
+            title=form.title.data,
+            content=form.content.data
         )
         db.session.add(new_post)
         db.session.commit()
+        flash('Post criado com sucesso!', 'success')
         return redirect(url_for('post', post_id=new_post.id))
-    return render_template('new_post.html', title='Novo Post')
+    return render_template('new_post.html', title='Novo Post', form=form)
 
-if __name__ == '__main__': #</ arquivo principal do app-->
+if __name__ == '__main__':
     with app.app_context():
-        db.create_all() #execute o python app.py para criar o banco de dados
+        db.create_all()
     app.run(debug=True)
